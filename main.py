@@ -1,4 +1,5 @@
 import os
+import time
 from datetime import datetime, timezone
 
 import gphoto2 as gp
@@ -6,6 +7,23 @@ from loguru import logger as log
 
 CAMERA = gp.check_result(gp.gp_camera_new())
 gp.check_result(gp.gp_camera_init(CAMERA))
+
+
+def time_measure(func):
+    """
+    Decorator which measures the time a function needs to execute.
+    :param func:
+    :return:
+    """
+
+    def inner(*args, **kwargs):
+        tick = time.time()
+        result = func(*args, **kwargs)
+        tock = time.time()
+        log.debug(f"[{func.__name__}]: Took {round(tock - tick, 4)} seconds")
+        return result
+
+    return inner
 
 
 def utc_now() -> int:
@@ -41,6 +59,7 @@ def set_setting(camera_config, setting: str, value) -> None:
             f"Konnte Einstellung {setting} nicht setzen. Vielleicht wird diese Einstellung von deiner Kamera nicht unterstützt oder der zugehörige Wert ist nicht gültig. gphoto2 Fehler: {ex}")
 
 
+@time_measure
 def autofokus():
     """
     Triggert den Autofokus der aktuell angeschlossenen Kamera.
@@ -56,12 +75,13 @@ def autofokus():
             f"🎯❌ Autofokus konnte nicht durchgeführt werden: {ex}")
 
 
+@time_measure
 def take_picture(camera: gp.Camera):
     """
     Directly takes a picture and saves it to the Pi.
     :return:
     """
-    print("📸 Bild wird aufgenommen.")
+    log.info("📸 Bild wird aufgenommen.")
     timestamp = utc_now()
     file_path = camera.capture(gp.GP_CAPTURE_IMAGE)
     target = os.path.join(".", f"{timestamp}.jpg")
@@ -72,9 +92,7 @@ def take_picture(camera: gp.Camera):
 
 
 def main():
-    # print(CAMERA)
-    # autofokus()
-
+    autofokus()
     take_picture(CAMERA)
 
 
